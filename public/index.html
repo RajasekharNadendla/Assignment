@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Seat Reservation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Train Seat Reservation</h1>
+    <form id="bookingForm">
+        <label for="numSeats">Enter number of seats (1-7):</label>
+        <input type="number" id="numSeats" min="1" max="7" required>
+        <button type="submit">Book Seats</button>
+    </form>
+
+    <h2>Seats Availability</h2>
+    <div id="seatsContainer"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const seatsContainer = document.getElementById('seatsContainer');
+
+            const fetchSeats = async () => {
+                try {
+                    const response = await fetch('/api/seats');
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const seats = await response.json();
+                    
+                    if (!Array.isArray(seats) || seats.length === 0) {
+                        throw new Error('No seat data available');
+                    }
+
+                    seatsContainer.innerHTML = ''; 
+
+                    for (let i = 0; i < 80; i++) {
+                        const seatDiv = document.createElement('div');
+                        seatDiv.classList.add('seat');
+                        seatDiv.innerHTML = seats[i].seatNumber;
+                        
+                        seatDiv.style.backgroundColor = seats[i].isBooked ? 'red' : 'green';
+                        
+                        seatsContainer.appendChild(seatDiv);
+                    }
+                } catch (error) {
+                    console.error('Error fetching seats:', error);
+                    seatsContainer.innerHTML = 'Failed to load seat data. Please try again later.';
+                }
+            };
+
+            fetchSeats(); 
+
+            const bookingForm = document.getElementById('bookingForm');
+            bookingForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const numSeats = document.getElementById('numSeats').value;
+
+                const response = await fetch('/api/seats/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ numSeats: parseInt(numSeats) })
+                });
+
+                const result = await response.json();
+                if (response.status === 200) {
+                    alert(`Seats booked: ${result.bookedSeats.join(', ')}`);
+                } else {
+                    alert(result.error);
+                }
+
+                fetchSeats(); 
+            });
+        });
+    </script>
+</body>
+</html>
